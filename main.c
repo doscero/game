@@ -231,7 +231,7 @@ unsigned char map[64] = { 1, 2, 3, 4, 5, 6, 7, 8,
 						57, 58, 59, 60, 61, 62, 63, 64 };
 
 
-enum States {start, pos } state;
+enum States {start, pos, GameOver } state;
 
 unsigned char currentPosition;
 unsigned char getModulus;
@@ -239,146 +239,169 @@ unsigned char tmpPos;
 unsigned char rowPos;
 unsigned char colPos;
 
+unsigned char movement;
 unsigned char hitDetected = 0;
 unsigned char resetButton;
+
+unsigned char tmpB;
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 void tick( short xADC, short yADC )
 {
-	int c = 0;
 	switch( state )
 	{
 		case start:
-		state = pos;
-		currentPosition = 3;
-		break;
+			state = pos;
+			currentPosition = 3;
+			
+			break;
 
 		case pos:
 		
-		/*LCD_ClearScreen( );*/
+			/*LCD_ClearScreen( );*/
 		
-		// 		PORTB = GetChangeValue( row );
+			// 		PORTB = GetChangeValue( row );
 		
-		// 		playerArray [ GetChangeValue( row ) ] = playerArray[GetChangeValue( row ) ] | column;
+			// 		playerArray [ GetChangeValue( row ) ] = playerArray[GetChangeValue( row ) ] | column;
 		
-		if ( hitDetected != 1 )
-		{
-			//	Center	//////////////////////////////////////////////////////////
-			if ( ( xADC >= 540 && xADC <= 570 ) && ( yADC >= 540 && yADC <= 570 ) )
+			if ( hitDetected == 1 )
 			{
-				/*LCD_DisplayString( 1, "Center" );*/
-				movement = 'C';
-
+				state = GameOver;
+				break;	
 			}
-			
-			//	Up	////////////////////////////////////////////////////////////////////
-			else if ( ( xADC >= 530 && xADC <= 650 ) && ( yADC >= 800 && yADC <= 1100 ) )
+		
+			if ( hitDetected != 1 )
 			{
-				/*LCD_DisplayString( 1, "Up" );*/
-				movement = 'U';
-
-				if ( map[ currentPosition ] > 8 )
+				//	Center	//////////////////////////////////////////////////////////
+				if ( ( xADC >= 540 && xADC <= 570 ) && ( yADC >= 540 && yADC <= 570 ) )
 				{
-					currentPosition = currentPosition - 8;
-					//playerArray[ GetChangeValue ( row ) ] = 0x00;
-					//row = row >> 1;
+					/*LCD_DisplayString( 1, "Center" );*/
+					movement = 'C';
+
+				}
+			
+				//	Up	////////////////////////////////////////////////////////////////////
+				else if ( ( xADC >= 530 && xADC <= 650 ) && ( yADC >= 800 && yADC <= 1100 ) )
+				{
+					/*LCD_DisplayString( 1, "Up" );*/
+					movement = 'U';
+
+					if ( map[ currentPosition ] > 8 )
+					{
+						currentPosition = currentPosition - 8;
+						//playerArray[ GetChangeValue ( row ) ] = 0x00;
+						//row = row >> 1;
 					
-				}
+					}
 
 				
-			}
-			
-			//	Down	/////////////////////////////////////////////////////////////
-			else if ( ( xADC >= 530 && xADC <= 650 ) && ( yADC >= 0 && yADC <= 200 ) )
-			{
-				/*LCD_DisplayString( 1, "Down" );*/
-				movement = 'D';
-				if ( map[ currentPosition ] < 57 )
-				{
-					currentPosition = currentPosition + 8;
 				}
+			
+				//	Down	/////////////////////////////////////////////////////////////
+				else if ( ( xADC >= 530 && xADC <= 650 ) && ( yADC >= 0 && yADC <= 200 ) )
+				{
+					/*LCD_DisplayString( 1, "Down" );*/
+					movement = 'D';
+					if ( map[ currentPosition ] < 57 )
+					{
+						currentPosition = currentPosition + 8;
+					}
 
-			}
-			
-			//Left	/////////////////////////////////////////////////////////////
-			else if ( ( xADC >= 0 && xADC <= 200 ) && ( yADC >= 400 && yADC <= 600 ) )
-			{
-				/*LCD_DisplayString( 1, "Left" );*/
-				movement = 'L';
-				
-				if ( ( map[ currentPosition ] % 8 ) != 0  )
-				currentPosition = currentPosition + 1;
-			}
-			
-			//	Right	////////////////////////////////////////////////////////////////
-			else if ( ( xADC >= 800 && xADC <= 1100 ) && ( yADC >= 400 && yADC <= 600 ) )
-			{
-				//LCD_DisplayString( 1, "Right" );
-				movement = 'R';
-				
-				if ( ( map[ currentPosition ] % 8 ) != 1 )
-				currentPosition = currentPosition - 1;
-			}
-			
-			//	Top Left	///////////////////////////////////////////////////////////
-			else if ( ( xADC >= 100 && xADC <= 300 ) && ( yADC >= 600 && yADC <= 900 ) )
-			{
-				//LCD_DisplayString( 1, "Top Left" );
-				
-				if ( ( ( map[ currentPosition ] % 8 ) != 0 ) && map[ currentPosition ] > 8 )
-				{
-					currentPosition = currentPosition - 7;
 				}
-			}
 			
-			//	Top Right	///////////////////////////////////////////////////////////
-			else if ( ( xADC >= 700 && xADC <= 950 ) && ( yADC >= 600 && yADC <= 900 ) )
-			{
-				//LCD_DisplayString( 1, "Top Right" );
-				
-				if ( ( ( map[ currentPosition ] % 8 ) != 1 ) && map[ currentPosition] > 8  )
+				//Left	/////////////////////////////////////////////////////////////
+				else if ( ( xADC >= 0 && xADC <= 200 ) && ( yADC >= 400 && yADC <= 600 ) )
 				{
-					currentPosition = currentPosition - 9;
-				}
-			}
-			
-			//	Bottom Left	///////////////////////////////////////////////////////////
-			else if ( ( xADC >= 100 && xADC <= 300 ) && ( yADC >= 100 && yADC <= 350 ) )
-			{
-				//LCD_DisplayString( 1, "Bottom Left" );
+					/*LCD_DisplayString( 1, "Left" );*/
+					movement = 'L';
 				
-				if ( ( ( map[ currentPosition ] % 8 ) != 0 ) && map[ currentPosition] < 57  )
-				{
-					currentPosition = currentPosition + 9;
+					if ( ( map[ currentPosition ] % 8 ) != 0  )
+					currentPosition = currentPosition + 1;
 				}
-			}
 			
-			//	Bottom Right	///////////////////////////////////////////////////////
-			else if ( ( xADC >= 700 && xADC <= 950 ) && ( yADC >= 100 && yADC <= 350 ) )
-			{
-				//LCD_DisplayString( 1, "Bottom Right" );
+				//	Right	////////////////////////////////////////////////////////////////
+				else if ( ( xADC >= 800 && xADC <= 1100 ) && ( yADC >= 400 && yADC <= 600 ) )
+				{
+					//LCD_DisplayString( 1, "Right" );
+					movement = 'R';
 				
-				if ( ( ( map[ currentPosition ] % 8 ) != 1 ) && map[ currentPosition] < 57 )
-				{
-					currentPosition = currentPosition + 7;
+					if ( ( map[ currentPosition ] % 8 ) != 1 )
+					currentPosition = currentPosition - 1;
 				}
+			
+				//	Top Left	///////////////////////////////////////////////////////////
+				else if ( ( xADC >= 100 && xADC <= 300 ) && ( yADC >= 600 && yADC <= 900 ) )
+				{
+					//LCD_DisplayString( 1, "Top Left" );
+				
+					if ( ( ( map[ currentPosition ] % 8 ) != 0 ) && map[ currentPosition ] > 8 )
+					{
+						currentPosition = currentPosition - 7;
+					}
+				}
+			
+				//	Top Right	///////////////////////////////////////////////////////////
+				else if ( ( xADC >= 700 && xADC <= 950 ) && ( yADC >= 600 && yADC <= 900 ) )
+				{
+					//LCD_DisplayString( 1, "Top Right" );
+				
+					if ( ( ( map[ currentPosition ] % 8 ) != 1 ) && map[ currentPosition] > 8  )
+					{
+						currentPosition = currentPosition - 9;
+					}
+				}
+			
+				//	Bottom Left	///////////////////////////////////////////////////////////
+				else if ( ( xADC >= 100 && xADC <= 300 ) && ( yADC >= 100 && yADC <= 350 ) )
+				{
+					//LCD_DisplayString( 1, "Bottom Left" );
+				
+					if ( ( ( map[ currentPosition ] % 8 ) != 0 ) && map[ currentPosition] < 57  )
+					{
+						currentPosition = currentPosition + 9;
+					}
+				}
+			
+				//	Bottom Right	///////////////////////////////////////////////////////
+				else if ( ( xADC >= 700 && xADC <= 950 ) && ( yADC >= 100 && yADC <= 350 ) )
+				{
+					//LCD_DisplayString( 1, "Bottom Right" );
+				
+					if ( ( ( map[ currentPosition ] % 8 ) != 1 ) && map[ currentPosition] < 57 )
+					{
+						currentPosition = currentPosition + 7;
+					}
+				}
+			
+				getModulus = map[ currentPosition ] % 8;
+				rowPos = getRow( getModulus );
+			
+				tmpPos = map[ currentPosition ];
+				colPos = getCol( tmpPos );
+			
+				break;
+			
+		case GameOver:
+			
+			if ( hitDetected == 0 )
+			{
+				
+				getModulus = map[ currentPosition ] % 8;
+				rowPos = getRow( getModulus );
+								
+				tmpPos = map[ currentPosition ];
+				colPos = getCol( tmpPos );
+								
+				
+				state = start;
+				break;
 			}
-			else
-			;
-			
-			getModulus = map[ currentPosition ] % 8;
-			rowPos = getRow( getModulus );
-			
-			tmpPos = map[ currentPosition ];
-			colPos = getCol( tmpPos );
-			
-			break;
 		}
 	}
 }
 
-enum ZZ_States{ ZZ_Start, ZZ_Go, ZZ_Freeze, ZZ_Stop } ZZ_state;
+enum ZZ_States{ ZZ_Start, ZZ_Go, ZZ_GameOver, ZZ_Stop } ZZ_state;
 
 unsigned char currentZZ;
 unsigned char zzModulus;
@@ -393,66 +416,71 @@ void ZZ_Tick( )
 	switch( ZZ_state )
 	{
 		case ZZ_Start:
-            ZZ_state = ZZ_Go;
-            
-            currentZZ = 5;
-            zigZagC = 0x01;
-            
-            moveToggle = 0;
-            contFlag = 1;
+		ZZ_state = ZZ_Go;
 		
-		    break;
+		currentZZ = 5;
+		zigZagC = 0x01;
+		
+		moveToggle = 0;
+		contFlag = 1;
+		
+		break;
 		
 		case ZZ_Go:
-        
-            if ( hitDetected == 1 )
-            {
-                ZZ_state = ZZ_Stop;
-                break;
-            }
-            
-        
-            tmpZZ = map[ currentZZ ] % 8;
-            zigZagR = getRow(  tmpZZ );
-            
-            // 			transmit_blue( ~zigZagR );
-            // 			transmit_yellow( zigZagC );
 		
-		    contFlag = 0;
+// 		if ( hitDetected == 1 )
+// 		{
+// 			ZZ_state = ZZ_GameOver;
+// 			break;
+// 		}
 		
-            if ( map[ currentZZ ] == 63 || map[ currentZZ ] == 61 )
-            {
-                currentZZ = 5;
-                zigZagC = 0x01;
-                contFlag = 1;
-            }
-            
-            if ( contFlag == 0 )
-            {
-                if ( moveToggle == 0x00 )
-                {
-                    currentZZ = currentZZ + 7;
-                    zigZagC = zigZagC << 1;
-                    moveToggle = ~moveToggle;
-                }
-                
-                else
-                {
-                    currentZZ = currentZZ + 9;
-                    zigZagC = zigZagC << 1;
-                    moveToggle = ~moveToggle;
-                    
-                }
-            }
-            
+		
+		tmpZZ = map[ currentZZ ] % 8;
+		zigZagR = getRow(  tmpZZ );
+		
+		// 			transmit_blue( ~zigZagR );
+		// 			transmit_yellow( zigZagC );
+		
+		contFlag = 0;
+		
+		if ( map[ currentZZ ] == 63 || map[ currentZZ ] == 61 )
+		{
+			currentZZ = 5;
+			zigZagC = 0x01;
+			contFlag = 1;
+		}
+		
+		if ( contFlag == 0 )
+		{
+			if ( moveToggle == 0x00 )
+			{
+				currentZZ = currentZZ + 7;
+				zigZagC = zigZagC << 1;
+				moveToggle = ~moveToggle;
+			}
+			
+			else
+			{
+				currentZZ = currentZZ + 9;
+				zigZagC = zigZagC << 1;
+				moveToggle = ~moveToggle;
+				
+			}
+		}
+		
 
-            break;
+		break;
 		
-		case ZZ_Freeze:
-		    break;
-            
-        case ZZ_Stop:
-            break
+		case ZZ_GameOver:
+			
+			if ( hitDetected == 0 )
+			{
+				ZZ_state = ZZ_Start;
+			}
+			break;
+		
+		case ZZ_Stop:
+			break;
 		
 		
 	}
@@ -471,15 +499,15 @@ void LZ_Tick( )
 	switch( LZ_state )
 	{
 		case LZ_Start:
-		    LZ_state = LZ_Beam;
+		LZ_state = LZ_Beam;
 		
-            LZR = 0x01;
-            LZC = 0xFF;
+		LZR = 0x80;
+		LZC = 0xFF;
 		
-		    break;
+		break;
 		
 		case LZ_Beam:
-		    break;
+		break;
 		
 	}
 }
@@ -498,32 +526,34 @@ void BL_Tick( )
 	switch( BL_state )
 	{
 		case BL_Start:
-            BL_state = BL_Shoot;
-            
-            BLR = 0x02;
-            BLC = 0x01;
-            
-            tmpBL = 0;
-            
-            littleDelay = 0;
+		BL_state = BL_Shoot;
 		
-		    break;
+		BLR = 0x02;
+		BLC = 0x01;
+		
+		tmpBL = 0;
+		
+		littleDelay = 0;
+		
+		break;
 		
 		case BL_Shoot:
-			if ( littleDelay >= 10 )
+		if ( littleDelay >= 10 )
+		{
+			BLC = BLC << 1;
+			tmpBL++;
+			
+			if ( tmpBL >= 8 )
 			{
-				BLC = BLC << 1;
-				tmpBL++;
-		
-				if ( tmpBL >= 8 )
-				{
-					BLC = 0x01;
-					tmpBL = 0;
-				}
+				BLC = 0x01;
+				tmpBL = 0;
 			}
-			
+		}
+		if( littleDelay < 11 )
 			littleDelay++;
-			
+		
+		if( ( BLR == rowPos && BLC == colPos ) )
+			hitDetected = 1;
 		break;
 		
 	}
@@ -536,84 +566,122 @@ void MD_Tick( )
 	switch( MD_state )
 	{
 		case MD_Start:
-            MD_state = MD_MatrixDisplay;
-            hitDetected = 0;
-		break;
+			MD_state = MD_MatrixDisplay;
+			hitDetected = 0;
+			break;
 		
 		case MD_MatrixDisplay:
-		if ( hitDetected == 1 )
-		{
-			PORTB = 0x01;
-            
-            //  Display an X when hit is detected
-            
-            
-			transmit_red( ~0xFF );
-			transmit_yellow( 0xFF );
-			MD_state = MD_Pause;
-		}
+			if ( hitDetected == 1 )
+			{
+				PORTB = 0x01;
+			
+				//  Display an X when hit is detected
+			
+			
+				transmit_red( ~0xFF );
+				transmit_yellow( 0xFF );
+
+				MD_state = MD_Pause;
+			}
 		
-		else if ( hitDetected == 0 )
-		{
-			transmit_blue( ~zigZagR );
-			transmit_yellow( zigZagC );
+			else if ( hitDetected == 0 )
+			{
+				transmit_blue( ~zigZagR );
+				transmit_yellow( zigZagC );
 			
-			transmit_blue( ~0x00 );
-			transmit_yellow( 0x00 );
+				transmit_blue( ~0x00 );
+				transmit_yellow( 0x00 );
 			
-			transmit_green( ~rowPos );
-			transmit_yellow( colPos );
+				transmit_green( ~rowPos );
+				transmit_yellow( colPos );
 			
-			transmit_green( ~0x00 );
-			transmit_yellow( 0x00 );
+				transmit_green( ~0x00 );
+				transmit_yellow( 0x00 );
 			
-			transmit_red( ~0x80);
-			transmit_yellow( LZC );
-						
+				transmit_blue( ~LZR );
+				transmit_yellow( LZC );
+			
+				transmit_blue( ~0x00 );
+				transmit_yellow( 0x00 );
+			
+				transmit_green( ~LZR );
+				transmit_yellow( LZC );
+			
+				transmit_green( ~0x00 );
+				transmit_yellow( 0x00 );
+			
+				transmit_blue( ~0x02 );
+				transmit_yellow( BLC );
+			
+				transmit_blue( ~0x00 );
+				transmit_yellow( 0x00 );
+			
+			}
+		
+			break;
+		
+		case MD_Pause:
+		
+			transmit_red( ~0x81 );
+			transmit_yellow( 0x81 );
+			//
 			transmit_red( ~0x00 );
 			transmit_yellow( 0x00 );
 			
-			transmit_green( ~0x80 );
-			transmit_yellow( LZC );
+			transmit_red( ~0x42);
+			transmit_yellow( 0x42 );
 			
-			transmit_green( ~0x00 );
+			transmit_red( ~0x00 );
 			transmit_yellow( 0x00 );
 			
-			transmit_blue( ~0x02 );
-			transmit_yellow( BLC );			
 			
-			transmit_blue( ~0x00 );
-			transmit_yellow( 0x00 );			
+			transmit_red( ~0x24 );
+			transmit_yellow( 0x24 );
 			
-		}
+			transmit_red( ~0x00 );
+			transmit_yellow( 0x00 );
+			
+			transmit_red( ~0x18 );
+			transmit_yellow( 0x18 );
+			
+			transmit_red( ~0x00 );
+			transmit_yellow( 0x00 );
+			if ( hitDetected == 0 )
+			{
+				PORTB = 0x00;
+				
+				MD_state = MD_MatrixDisplay;
+				break;
+			}
 		
-		break;
-		
-		case MD_Pause:
-		break;
+			break;
 		
 	}
 }
 
-enum BS_States{ BS_Start, BS_Move } BS_state;
+// enum BS_States{ BS_Start, BS_Move } BS_state;
+// 
+// unsigned char boss_top_left;
+// unsigned char boss_top_right;
+// unsigned char boss_bottom_left;
+// unsigned char boss_bottom_right;
+// 
+// void BS_Tick( )
+// {
+// 	switch( BS_state )
+// 	{
+// 		case BS_state:
+// 		
+// 		break:
+// 		
+// 		case BS_Move:
+// 		break;
+// 	}
+// }
 
-unsigned char boss_top_left;
-unsigned char boss_top_right;
-unsigned char boss_bottom_left;
-unsigned char boss_bottom_right;
 
-void BS_Tick( )
-{
-    switch( BS_state )
-    {
-        case BS_state:
-        
-            break:
-            
-        case BS_Move:
-            break;
-    }
-}
+
+//int Hit_Detect( char zzr, char zzc, char rowP, char row )
 
 enum HD_States{ HD_Start, HD_Scan } HD_state;
 
@@ -622,8 +690,8 @@ void HD_Tick( )
 	switch( HD_state )
 	{
 		case HD_Start:
-            HD_state = HD_Scan;
-            break;
+		HD_state = HD_Scan;
+		break;
 		
 		case HD_Scan:
 		if ( ( zigZagR == rowPos && zigZagC == colPos ) || ( LZR == rowPos) || ( BLR == rowPos && BLC == colPos ) )
@@ -635,45 +703,53 @@ void HD_Tick( )
 
 //  Restart
 
-enum RS_States{ RS_Start, RS_Wait, RS_Release } RS_state:
+enum RS_States{ RS_Start, RS_Wait, RS_Release } RS_state;
 
 unsigned char tmpRestart;
 
 void RS_Tick( )
 {
-    switch( RS_state )
-    {
-        case RS_Start:
-            RS_state = RS_Wait;
-            break;
-            
-        case RS_Wait:
-            tmpRestart = ~PINA & 0x08;
-            
-            if ( tmpRestart == 0x01 )
-            {
-                RS_state = RS_Release;
-                break  
-            }
-            
-            break;
-            
-        case RS_Release:
-            if ( tmpRestart == 0x01 )
-            {
-                RS_state = RS_state;
-                break;
-            }
-            
-            else if ( tmpRestart == 0x00 )
-            {
-                // resetButton = 1;
-                hitDetected = 0;
-                
-                RS_state = RS_Wait;
-                break;
-            }
-    }
+	switch( RS_state )
+	{
+		case RS_Start:
+			RS_state = RS_Wait;
+			break;
+		
+		case RS_Wait:
+		
+			if ( tmpRestart == 0x04 )
+			{
+				RS_state = RS_Release;
+				break;
+			}
+			
+			break;
+		
+		case RS_Release:
+			if ( tmpRestart == 0x04 )
+			{
+				PORTB = 0x03;
+				RS_state = RS_state;
+				break;
+			}
+		
+			else if ( tmpRestart == 0x00 )
+			{
+				// resetButton = 1;
+				hitDetected = 0;
+				
+				PORTB = 0x00;
+				
+				
+				currentPosition = 3;//reset the current players position here because I, thought it would make a difference but no
+				
+				transmit_red( ~0x00 );
+				transmit_yellow( 0x00 );
+				
+				RS_state = RS_Wait;
+				break;
+			}
+	}
 }
 
 
@@ -689,17 +765,17 @@ int main(void)
 	unsigned long state_elapsedTime = 100;
 	unsigned long zz_elapsedTime = 100;
 	unsigned long md_elapsedTime = 1;
-	unsigned long hd_elapsedTime = 1;
+	unsigned long hd_elapsedTime = 25;
 	unsigned long lz_elapsedTime = 1;
 	unsigned long bl_elapsedTime = 100;
-    unsigned long rs_elapsedTime = 1;
+	unsigned long rs_elapsedTime = 100;
 	
 	unsigned long state_maxTime = state_elapsedTime;
 	unsigned long zz_maxTime = zz_elapsedTime;
 	unsigned long hd_maxTime = hd_elapsedTime;
 	unsigned long lz_maxTime = lz_elapsedTime;
 	unsigned long bl_maxTime = bl_elapsedTime;
-    unsigned long rs_maxTime = rs_elapsedTime;
+	unsigned long rs_maxTime = rs_elapsedTime;
 	
 	TimerSet( period );
 	TimerOn();
@@ -713,9 +789,9 @@ int main(void)
 	HD_state = HD_Start;    //  Hit Detection
 	LZ_state = LZ_Start;    //  Laser
 	BL_state = BL_Start;    //  Bullets
-    RS_state = RS_Start;    //  Restart
-    
-    
+	RS_state = RS_Start;    //  Restart
+	
+	
 	transmit_red ( ~0x00 );
 	transmit_green( ~0x00 );
 	transmit_blue( ~0x00 );
@@ -725,15 +801,12 @@ int main(void)
 	{
 		
 		tmpB = ~PINA & 0x03;
+		tmpRestart = ~PINA & 0x04;
 		
 		xADC = readadc( 0 );	// gets X
 		yADC = readadc( 1 );	// gets Y
-		
-		if ( hd_elapsedTime >= hd_maxTime )
-		{
-			HD_Tick();
-			hd_elapsedTime = 0;
-		}
+				
+
 		
 		if ( md_elapsedTime >= 1 )
 		{
@@ -741,13 +814,18 @@ int main(void)
 			md_elapsedTime = 0;
 		}
 		
-
 		if ( state_elapsedTime >= state_maxTime )
 		{
 			tick( xADC, yADC );
 			state_elapsedTime = 0;
 		}
 		
+		if ( hd_elapsedTime >= hd_maxTime )
+		{
+			HD_Tick();
+			hd_elapsedTime = 0;
+		}
+				
 		if ( zz_elapsedTime >= zz_maxTime )
 		{
 			ZZ_Tick();
@@ -765,15 +843,18 @@ int main(void)
 			BL_Tick();
 			bl_elapsedTime = 0;
 		}
-        
-        if ( hitDetected == 1 )
-        {
-            if ( rs_elapsedTime >= rs_elapsedTime )
-            {
-                RS_Tick( );
-                rs_elapsedTime = 0;
-            }
-        }
+		
+
+				
+		if ( hitDetected == 1 )
+		{
+			if ( rs_elapsedTime >= rs_maxTime )
+			{
+				RS_Tick( );
+				rs_elapsedTime = 0;
+			}
+		}
+	
 		
 		
 		while (!TimerFlag);
@@ -786,7 +867,7 @@ int main(void)
 		hd_elapsedTime += period;
 		lz_elapsedTime += period;
 		bl_elapsedTime += period;
-        rs_elapsedTime += period;		
+		rs_elapsedTime += period;
 
 	}
 }
