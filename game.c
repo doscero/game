@@ -216,6 +216,7 @@ int getCol( unsigned char curValue )
 	
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////
 //  Global Variables
 ///////////////////////////////////////////////////////////////////////////////
@@ -402,6 +403,9 @@ void tick( short xADC, short yADC )
 }
 
 enum ZZ_States{ ZZ_Start, ZZ_Go, ZZ_GameOver, ZZ_Stop } ZZ_state;
+	
+unsigned char ZZ_Pattern_UD[] = { 0x04, 0x40, 0x44, 0x81, 0x12, 0xA2, 0x32 };
+unsigned char ZZ_Pattern_LF[] = { 0x02, 0x40, 0x22, 0x12, 0x08, 0x03, 0x30 };
 
 unsigned char currentZZ;
 unsigned char zzModulus;
@@ -413,63 +417,165 @@ void ZZ_Tick( )
 {
 	static unsigned char moveToggle;
 	static unsigned char contFlag;
+	
 	switch( ZZ_state )
 	{
 		case ZZ_Start:
-		ZZ_state = ZZ_Go;
+			ZZ_state = ZZ_Go;
 		
-		currentZZ = 5;
-		zigZagC = 0x01;
+			zigZagR = 0x04;
+			zigZagC = 0x01;
 		
-		moveToggle = 0;
-		contFlag = 1;
+			moveToggle = 0;
+			contFlag = 0;
 		
-		break;
+			static unsigned char patternNumber = 1;
+			static unsigned char arrayCounter = 0;
+			static unsigned char index = 0;
+			static unsigned char counter = 0;
+			
+			break;
 		
 		case ZZ_Go:
 		
-// 		if ( hitDetected == 1 )
-// 		{
-// 			ZZ_state = ZZ_GameOver;
-// 			break;
-// 		}
+	// 		if ( hitDetected == 1 )
+	// 		{
+	// 			ZZ_state = ZZ_GameOver;
+	// 			break;
+	// 		}
+		
+// 			tmpZZ = map[ currentZZ ] % 8;
+// 			zigZagR = getRow( tmpZZ );
 		
 		
-		tmpZZ = map[ currentZZ ] % 8;
-		zigZagR = getRow(  tmpZZ );
-		
-		// 			transmit_blue( ~zigZagR );
-		// 			transmit_yellow( zigZagC );
-		
-		contFlag = 0;
-		
-		if ( map[ currentZZ ] == 63 || map[ currentZZ ] == 61 )
-		{
-			currentZZ = 5;
-			zigZagC = 0x01;
-			contFlag = 1;
-		}
-		
-		if ( contFlag == 0 )
-		{
-			if ( moveToggle == 0x00 )
+			if ( patternNumber == 1 && counter < 55 && contFlag != 0 )
 			{
-				currentZZ = currentZZ + 7;
-				zigZagC = zigZagC << 1;
-				moveToggle = ~moveToggle;
+				contFlag = 0;
+				
+				if ( contFlag == 0 )
+				{
+					
+					
+					if ( moveToggle == 0x00 )
+					{
+					
+						
+						zigZagC = zigZagC << 1;
+						zigZagR = zigZagR >> 1;
+						moveToggle = ~moveToggle;
+					}
+
+					else
+					{
+						zigZagC = zigZagC << 1;
+						zigZagR = zigZagR << 1;
+						moveToggle = ~moveToggle;
+
+					}
+				}
+			
+				counter++;
+			
+				if ( ( counter % 8 ) == 0 )
+				{
+					index++;
+				
+					zigZagR = ZZ_Pattern_UD[index];
+					zigZagC = 0x01;
+				}
+			}
+		
+			else if ( patternNumber == 1 && counter == 55 )
+			{
+				patternNumber = 2;
+				index = 0;
+				counter = 0;
 			}
 			
-			else
+			if ( patternNumber == 2 && counter < 55 && contFlag != 0 )
 			{
-				currentZZ = currentZZ + 9;
-				zigZagC = zigZagC << 1;
-				moveToggle = ~moveToggle;
+				contFlag = 0;
 				
+				if ( counter == 0 )
+				{
+					PORTB = 0x0F;
+					zigZagC = ZZ_Pattern_LF[index];
+					zigZagR = 0x80;
+				}
+				
+				if ( contFlag == 0 )
+				{
+					//PORTB = 0x0F;	
+					
+					if ( moveToggle == 0x00 )
+					{
+						/*PORTB = 0x01;*/
+						
+						zigZagR = zigZagR >> 1;
+						zigZagC = zigZagC >> 1;
+						
+						moveToggle = ~moveToggle;
+					}
+
+					else
+					{
+						/*PORTB = 0x02;*/
+						zigZagR = zigZagR >> 1;
+						zigZagC = zigZagC << 1;
+						
+						moveToggle = ~moveToggle;
+
+					}
+				}
+				
+				counter++;
+				
+				if ( ( counter % 8 ) == 0 )
+				{
+					index++;
+					
+					zigZagC = ZZ_Pattern_UD[index];
+					zigZagR = 0x80;
+				}
 			}
-		}
+			
+			else if ( patternNumber == 2 && counter == 55 )
+			{
+				patternNumber = 3;
+				index = 0;
+				counter = 0;
+			}
+			
+		
+			if ( contFlag == 0 )
+			{
+				contFlag = 1;
+			}
+		
+		
 		
 
-		break;
+// 		
+// 		if ( contFlag == 0 )
+// 		{
+// 			if ( moveToggle == 0x00 )
+// 			{
+// 				currentZZ = currentZZ + 7;
+// 				zigZagC = zigZagC << 1;
+// 				moveToggle = ~moveToggle;
+// 			}
+// 			
+// 			else
+// 			{
+// 				currentZZ = currentZZ + 9;
+// 				zigZagC = zigZagC << 1;
+// 				moveToggle = ~moveToggle;
+// 				
+// 			}
+//		}
+		
+
+			break;
 		
 		case ZZ_GameOver:
 			
@@ -487,6 +593,8 @@ void ZZ_Tick( )
 }
 
 enum LZ_States{ LZ_Start, LZ_Beam, LZ_Freeze } LZ_state;
+	
+	
 
 unsigned char currentLZ;
 unsigned char LZModulus;
@@ -541,7 +649,6 @@ void BL_Tick( )
 			
 			littleDelay = 0;
 			static unsigned char patternNumber = 1;
-			static unsigned char arrayCounter = 0;
 			static unsigned char index = 0;
 			static unsigned char counter = 0;
 			static unsigned char newNumberFlag = 1;
@@ -554,7 +661,6 @@ void BL_Tick( )
 		
 			if ( patternNumber == 2 )
 			{
-				PORTB = 0x08;
  				BLC = BLC >> 1;
 			}
 			
@@ -604,19 +710,17 @@ void BL_Tick( )
 					
 				if ( counter == 0 )
 				{
-					PORTB = 0x05;
+					//PORTB = 0x05;
 						
 					BLR = BL_Pattern_DU[index];
 					BLC = 0x80;
 				}
-				
-				PORTB = 0X01;
-					
+									
 				counter++;
 					
 				if ( ( counter % 8 ) == 0 )
 				{
-					PORTB = 0x00;
+					//PORTB = 0x00;
 					index++;
 						
 					BLR = BL_Pattern_DU[index];
@@ -647,7 +751,7 @@ void BL_Tick( )
 				
 				if ( ( counter % 8 ) == 0 )
 				{
-					PORTB = 0x00;
+					//PORTB = 0x00;
 					index++;
 					
 					BLC = BL_Pattern_LR[index];
@@ -678,7 +782,7 @@ void BL_Tick( )
 				
 				if ( ( counter % 8 ) == 0 )
 				{
-					PORTB = 0x00;
+					//PORTB = 0x00;
 					index++;
 					
 					BLC = BL_Pattern_LR[index];
@@ -748,18 +852,18 @@ void MD_Tick( )
 			else if ( hitDetected == 0 )
 			{
 				
-				transmit_blue( ~BLR );
-				transmit_yellow( BLC );
-				
-				transmit_blue( ~0x00 );
-				transmit_yellow( 0x00 );
-				
-// 				transmit_blue( ~zigZagR );
-// 				transmit_yellow( zigZagC );
-// 			
+// 				transmit_blue( ~BLR );
+// 				transmit_yellow( BLC );
+// 				
 // 				transmit_blue( ~0x00 );
 // 				transmit_yellow( 0x00 );
-// 			
+				
+				transmit_blue( ~zigZagR );
+				transmit_yellow( zigZagC );
+			
+				transmit_blue( ~0x00 );
+				transmit_yellow( 0x00 );
+			
 				transmit_green( ~rowPos );
 				transmit_yellow( colPos );
 			
@@ -816,7 +920,7 @@ void MD_Tick( )
 			transmit_yellow( 0x00 );
 			if ( hitDetected == 0 )
 			{
-				PORTB = 0x00;
+				//PORTB = 0x00;
 				
 				MD_state = MD_MatrixDisplay;
 				break;
@@ -862,8 +966,8 @@ void HD_Tick( )
 		break;
 		
 		case HD_Scan:
-		if ( /*( zigZagR == rowPos && zigZagC == colPos ) || ( LZR == rowPos) ||*/ ( BLR & rowPos && BLC & colPos ) )
-			hitDetected = 1;
+// 		if ( ( zigZagR == rowPos && zigZagC == colPos ) || ( LZR == rowPos) || ( BLR & rowPos && BLC & colPos ) )
+// 			hitDetected = 1;
 		
 		break;
 	}
@@ -906,7 +1010,7 @@ void RS_Tick( )
 				// resetButton = 1;
 				hitDetected = 0;
 				
-				PORTB = 0x00;
+				//PORTB = 0x00;
 				
 				
 				currentPosition = 3;//reset the current players position here because I, thought it would make a difference but no
