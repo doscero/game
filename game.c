@@ -133,7 +133,7 @@ void transmit_red(unsigned short data) {
 		PORTD |= 0x40;
 	}
 	
-	//set RCLK = 1. Rising edge copies data from the ?Shift? register to the
+	//set RCLK = 1. Rising edge copies data from the �Shift� register to the
 	PORTD |= 0x20;
 	PORTD = 0x00;
 }
@@ -145,7 +145,7 @@ void transmit_blue(unsigned short data) {
 		PORTC |= 0x40;
 	}
 	
-	//set RCLK = 1. Rising edge copies data from the ?Shift? register to the
+	//set RCLK = 1. Rising edge copies data from the �Shift� register to the
 	PORTC |= 0x20;
 	PORTC = 0x00;
 }
@@ -163,7 +163,6 @@ void ADC_init()
 
 unsigned short xADC;
 unsigned short yADC;
-unsigned short tmpB;
 
 
 uint16_t readadc(uint8_t ch)
@@ -223,45 +222,54 @@ int getCol( unsigned char curValue )
 
 
 unsigned char map[64] = { 1, 2, 3, 4, 5, 6, 7, 8,
-	9, 10, 11, 12, 13, 14, 15, 16,
-	17, 18, 19, 20, 21, 22, 23, 24,
-	25, 26, 27, 28, 29, 30, 31, 32,
-	33, 34, 35, 36, 37, 38, 39, 40,
-	41, 42, 43, 44, 45, 46, 47, 48,
-	49, 50, 51, 52, 53, 54, 55, 56,
-57, 58, 59, 60, 61, 62, 63, 64 };
+						9, 10, 11, 12, 13, 14, 15, 16,
+						17, 18, 19, 20, 21, 22, 23, 24,
+						25, 26, 27, 28, 29, 30, 31, 32,
+						33, 34, 35, 36, 37, 38, 39, 40,
+						41, 42, 43, 44, 45, 46, 47, 48,
+						49, 50, 51, 52, 53, 54, 55, 56,
+						57, 58, 59, 60, 61, 62, 63, 64 };
 
 
 enum States {start, pos, GameOver } state;
 
-
-unsigned char movement;
 unsigned char currentPosition;
-unsigned char restartPosition = 3;
 unsigned char getModulus;
 unsigned char tmpPos;
 unsigned char rowPos;
 unsigned char colPos;
 
+unsigned char movement;
 unsigned char hitDetected = 0;
 unsigned char resetButton;
+
+unsigned char tmpB;
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 void tick( short xADC, short yADC )
 {
-	int c = 0;
 	switch( state )
 	{
 		case start:
-		state = pos;
-		currentPosition = 3;
-		break;
+			state = pos;
+			currentPosition = 8;
+			
+			break;
 
 		case pos:
 		
-		/*LCD_ClearScreen( );*/
+			/*LCD_ClearScreen( );*/
 		
+			// 		PORTB = GetChangeValue( row );
+		
+			// 		playerArray [ GetChangeValue( row ) ] = playerArray[GetChangeValue( row ) ] | column;
+		
+			if ( hitDetected == 1 )
+			{
+				state = GameOver;
+				break;	
+			}
 		
 			if ( hitDetected != 1 )
 			{
@@ -366,13 +374,6 @@ void tick( short xADC, short yADC )
 					}
 				}
 			
-				else if ( hitDetected == 1 )
-				{
-					state = GameOver;
-					break;	
-				}
-			
-			
 				getModulus = map[ currentPosition ] % 8;
 				rowPos = getRow( getModulus );
 			
@@ -381,37 +382,32 @@ void tick( short xADC, short yADC )
 			
 				break;
 			
-		}	// End if 
-		
 		case GameOver:
-		
-			if ( hitDetected == 1 )
-			{
-				state = state;
-				break;
-			}
 			
-			else if ( hitDetected == 0 )
+			if ( hitDetected == 0 )
 			{
-				currentPosition = restartPosition;
 				
-				state = pos;
+				getModulus = map[ currentPosition ] % 8;
+				rowPos = getRow( getModulus );
+								
+				tmpPos = map[ currentPosition ];
+				colPos = getCol( tmpPos );
+								
+				
+				state = start;
 				break;
 			}
+		}
 	}
 }
 
-enum ZZ_States{ ZZ_Start, ZZ_Go, ZZ_Freeze, ZZ_GameOver } ZZ_state;
+enum ZZ_States{ ZZ_Start, ZZ_Go, ZZ_GameOver, ZZ_Stop } ZZ_state;
 
 unsigned char currentZZ;
 unsigned char zzModulus;
 unsigned char tmpZZ	;
 unsigned char zigZagR;
 unsigned char zigZagC;
-
-unsigned char restart_CurrentZZ = 5;
-unsigned char restart_zigZagR;
-unsigned char restart_zigZagC = 0x01;
 
 void ZZ_Tick( )
 {
@@ -420,83 +416,77 @@ void ZZ_Tick( )
 	switch( ZZ_state )
 	{
 		case ZZ_Start:
-			ZZ_state = ZZ_Go;
-			
-			currentZZ = 5;
-			zigZagC = 0x01;
-			
-			moveToggle = 0;
-			contFlag = 1;
+		ZZ_state = ZZ_Go;
+		
+		currentZZ = 5;
+		zigZagC = 0x01;
+		
+		moveToggle = 0;
+		contFlag = 1;
 		
 		break;
 		
 		case ZZ_Go:
 		
-			if ( hitDetected == 1 )
+// 		if ( hitDetected == 1 )
+// 		{
+// 			ZZ_state = ZZ_GameOver;
+// 			break;
+// 		}
+		
+		
+		tmpZZ = map[ currentZZ ] % 8;
+		zigZagR = getRow(  tmpZZ );
+		
+		// 			transmit_blue( ~zigZagR );
+		// 			transmit_yellow( zigZagC );
+		
+		contFlag = 0;
+		
+		if ( map[ currentZZ ] == 63 || map[ currentZZ ] == 61 )
+		{
+			currentZZ = 5;
+			zigZagC = 0x01;
+			contFlag = 1;
+		}
+		
+		if ( contFlag == 0 )
+		{
+			if ( moveToggle == 0x00 )
 			{
-				ZZ_state = ZZ_GameOver;
-				break;
+				currentZZ = currentZZ + 7;
+				zigZagC = zigZagC << 1;
+				moveToggle = ~moveToggle;
 			}
-		
-		
-			tmpZZ = map[ currentZZ ] % 8;
-			zigZagR = getRow( tmpZZ );
-		
-			contFlag = 0;
-		
-			if ( map[ currentZZ ] == 63 || map[ currentZZ ] == 61 )
-			{
-				currentZZ = 5;
-				zigZagC = 0x01;
-				contFlag = 1;
-			}
-		
-			if ( contFlag == 0 )
-			{
-				if ( moveToggle == 0x00 )
-				{
-					currentZZ = currentZZ + 7;
-					zigZagC = zigZagC << 1;
-					moveToggle = ~moveToggle;
-				}
 			
-				else
-				{
-					currentZZ = currentZZ + 9;
-					zigZagC = zigZagC << 1;
-					moveToggle = ~moveToggle;
+			else
+			{
+				currentZZ = currentZZ + 9;
+				zigZagC = zigZagC << 1;
+				moveToggle = ~moveToggle;
 				
-				}
 			}
-
-			break;
+		}
 		
-		case ZZ_Freeze:
-			break;
+
+		break;
 		
 		case ZZ_GameOver:
-		
+			
 			if ( hitDetected == 0 )
 			{
-				currentZZ = restart_CurrentZZ;
-				
-				tmpZZ = map[ currentZZ ] % 8;
-				restart_zigZagR = getRow( tmpZZ );
-				zigZagR = restart_zigZagR;
-				
-				zigZagC = restart_zigZagC;
-				
-				ZZ_state = ZZ_Go;
-				break;
+				ZZ_state = ZZ_Start;
 			}
-			
+			break;
+		
+		case ZZ_Stop:
 			break;
 		
 		
 	}
 }
 
-enum LZ_States{ LZ_Start, LZ_Beam, LZ_Freeze, LZ_GameOver } LZ_state;
+enum LZ_States{ LZ_Start, LZ_Beam, LZ_Freeze } LZ_state;
 
 unsigned char currentLZ;
 unsigned char LZModulus;
@@ -522,7 +512,13 @@ void LZ_Tick( )
 	}
 }
 
-enum BL_States{ BL_Start, BL_Shoot, BL_Freeze, BL_GameOver } BL_state;
+enum BL_States{ BL_Start, BL_Shoot, BL_Freeze } BL_state;
+
+
+unsigned char BL_Pattern_UD[] = { 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
+unsigned char BL_Pattern_DU[] = { 0x01, 0x14, 0x28, 0x88, 0x09, 0x03, 0x10 };
+unsigned char BL_Pattern_LR[] = { 0x33, 0xFC, 0xC7, 0x11, 0x32, 0x06, 0xEF };
+/*unsigned char */
 
 unsigned char currentBL;
 unsigned char BLModulus;
@@ -530,9 +526,6 @@ unsigned char tmpBL	;
 unsigned char BLR;
 unsigned char BLC;
 unsigned char littleDelay;
-unsigned char restart_currentBL = 0x02;
-unsigned char restart_BLR = 0x02;
-unsigned char restart_BLC = 0x01;
 
 void BL_Tick( )
 {
@@ -547,49 +540,182 @@ void BL_Tick( )
 			tmpBL = 0;
 			
 			littleDelay = 0;
+			static unsigned char patternNumber = 1;
+			static unsigned char arrayCounter = 0;
+			static unsigned char index = 0;
+			static unsigned char counter = 0;
+			static unsigned char newNumberFlag = 1;
 			
 			break;
-		
-		case BL_Shoot:
 			
-			if ( hitDetected == 1 )
-			{
-				BL_state = BL_GameOver;
-				break;
-			}
+		case BL_Shoot:
 		
-			if ( littleDelay >= 10 )
+
+		
+			if ( patternNumber == 2 )
 			{
+				PORTB = 0x08;
+ 				BLC = BLC >> 1;
+			}
+			
+			else if ( patternNumber == 3 )
+			{
+				BLR = BLR >> 1;
+			}
+			
+			else if ( patternNumber == 4 )
+			{
+				BLR = BLR << 1;
+			}
+			
+			if ( patternNumber == 1 && counter < 55 ) 
+			{
+
 				BLC = BLC << 1;
-				tmpBL++;
 				
-				if ( tmpBL >= 8 )
+				if ( counter == 0 )
 				{
+					BLR = BL_Pattern_UD[index];
+				}
+				
+				counter++;
+				
+				if ( ( counter % 8 ) == 0 )
+				{
+					index++;
+						
+					BLR = BL_Pattern_UD[index];
 					BLC = 0x01;
-					tmpBL = 0;
 				}
 			}
 			
-			littleDelay++;
+			else if ( patternNumber == 1 && counter == 55 )
+			{
+				patternNumber = 2;
+				index = 0;
+				counter = 0;
+			}
 			
-			break;
+			
 		
-		case BL_GameOver:
-			
-			if ( hitDetected == 1 )
-			{
-				BL_state = BL_state;
-				break;
-			}
-			
-			else if ( hitDetected == 0 )
-			{
-				BLR = restart_BLR;
-				BLC = restart_BLC;
+		
+			if ( patternNumber == 2 && counter < 55 )
+			{	
+					
+				if ( counter == 0 )
+				{
+					PORTB = 0x05;
+						
+					BLR = BL_Pattern_DU[index];
+					BLC = 0x80;
+				}
 				
-				BL_state = BL_Shoot;
-				break;
+				PORTB = 0X01;
+					
+				counter++;
+					
+				if ( ( counter % 8 ) == 0 )
+				{
+					PORTB = 0x00;
+					index++;
+						
+					BLR = BL_Pattern_DU[index];
+					BLC = 0x80;
+				}
+				
 			}
+			
+			else if ( patternNumber == 2 && counter == 55 )
+			{
+				patternNumber = 3;
+				index = 0;
+				counter = 0;
+			}
+			
+			if ( patternNumber == 3 && counter < 55 )
+			{
+				//PORTB = counter;
+				
+				if ( counter == 0 )
+				{
+			
+					BLC = BL_Pattern_LR[index];
+					BLR = 0x80;
+				}
+						
+				counter++;
+				
+				if ( ( counter % 8 ) == 0 )
+				{
+					PORTB = 0x00;
+					index++;
+					
+					BLC = BL_Pattern_LR[index];
+					BLR = 0x80;
+				}
+				
+			}
+			
+			else if ( patternNumber == 3 && counter == 55 )
+			{
+				patternNumber = 4;
+				index = 0;
+				counter = 0;
+			}
+			
+			if ( patternNumber == 4 && counter < 55 )
+			{
+				//PORTB = counter;
+				
+				if ( counter == 0 )
+				{
+					
+					BLC = BL_Pattern_LR[index];
+					BLR = 0x01;
+				}
+				
+				counter++;
+				
+				if ( ( counter % 8 ) == 0 )
+				{
+					PORTB = 0x00;
+					index++;
+					
+					BLC = BL_Pattern_LR[index];
+					BLR = 0x01;
+				}
+				
+			}
+			
+			else if ( patternNumber == 4 && counter == 55 )
+			{
+				patternNumber = 5;
+				index = 0;
+				counter = 0;
+			}
+
+			
+
+		
+			
+		
+// 			if ( littleDelay >= 10 )
+// 			{
+// 				BLC = BLC << 1;
+// 				tmpBL++;
+// 				
+// 				if ( tmpBL >= 8 )
+// 				{
+// 					BLC = 0x01;
+// 					tmpBL = 0;
+// 				}
+// 			}
+// 			if( littleDelay < 11 )
+// 			littleDelay++;
+// 			
+// 			if( ( BLR == rowPos && BLC == colPos ) )
+// 				hitDetected = 1;
+			break;
 		
 	}
 }
@@ -608,46 +734,55 @@ void MD_Tick( )
 		case MD_MatrixDisplay:
 			if ( hitDetected == 1 )
 			{
+				PORTB = 0x01;
+			
 				//  Display an X when hit is detected
 			
 			
 				transmit_red( ~0xFF );
 				transmit_yellow( 0xFF );
+
 				MD_state = MD_Pause;
-				break;
 			}
 		
 			else if ( hitDetected == 0 )
 			{
-				transmit_blue( ~zigZagR );
-				transmit_yellow( zigZagC );
-			
+				
+				transmit_blue( ~BLR );
+				transmit_yellow( BLC );
+				
 				transmit_blue( ~0x00 );
 				transmit_yellow( 0x00 );
-			
+				
+// 				transmit_blue( ~zigZagR );
+// 				transmit_yellow( zigZagC );
+// 			
+// 				transmit_blue( ~0x00 );
+// 				transmit_yellow( 0x00 );
+// 			
 				transmit_green( ~rowPos );
 				transmit_yellow( colPos );
 			
-	 			transmit_green( ~0x00 );
-				transmit_yellow( 0x00 );
-			
-				transmit_blue( ~0x80);
-				transmit_yellow( LZC );
-			
-				transmit_blue( ~0x00 );
-				transmit_yellow( 0x00 );
-			
-				transmit_green( ~0x80 );
-				transmit_yellow( LZC );
-			
 				transmit_green( ~0x00 );
 				transmit_yellow( 0x00 );
-			
-				transmit_blue( ~0x02 );
-				transmit_yellow( BLC );
-			
-				transmit_blue( ~0x00 );
-				transmit_yellow( 0x00 );
+// 			
+// 				transmit_blue( ~LZR );
+// 				transmit_yellow( LZC );
+// 			
+// 				transmit_blue( ~0x00 );
+// 				transmit_yellow( 0x00 );
+// 			
+// 				transmit_green( ~LZR );
+// 				transmit_yellow( LZC );
+// 			
+// 				transmit_green( ~0x00 );
+// 				transmit_yellow( 0x00 );
+// 			
+// 				transmit_blue( ~0x02 );
+// 				transmit_yellow( BLC );
+// 			
+// 				transmit_blue( ~0x00 );
+// 				transmit_yellow( 0x00 );
 			
 			}
 		
@@ -655,18 +790,38 @@ void MD_Tick( )
 		
 		case MD_Pause:
 		
+			transmit_red( ~0x81 );
+			transmit_yellow( 0x81 );
+			//
+			transmit_red( ~0x00 );
+			transmit_yellow( 0x00 );
+			
+			transmit_red( ~0x42);
+			transmit_yellow( 0x42 );
+			
+			transmit_red( ~0x00 );
+			transmit_yellow( 0x00 );
+			
+			
+			transmit_red( ~0x24 );
+			transmit_yellow( 0x24 );
+			
+			transmit_red( ~0x00 );
+			transmit_yellow( 0x00 );
+			
+			transmit_red( ~0x18 );
+			transmit_yellow( 0x18 );
+			
+			transmit_red( ~0x00 );
+			transmit_yellow( 0x00 );
 			if ( hitDetected == 0 )
 			{
-				MD_state = MD_MatrixDisplay;
 				PORTB = 0x00;
+				
+				MD_state = MD_MatrixDisplay;
 				break;
 			}
-			
-			else if ( hitDetected == 1 )
-			{	
-				PORTB = 0x02;
-				MD_state = MD_state;
-			}
+		
 			break;
 		
 	}
@@ -684,12 +839,17 @@ void MD_Tick( )
 // 	switch( BS_state )
 // 	{
 // 		case BS_state:
+// 		
 // 		break:
 // 		
 // 		case BS_Move:
 // 		break;
 // 	}
 // }
+
+
+
+//int Hit_Detect( char zzr, char zzc, char rowP, char row )
 
 enum HD_States{ HD_Start, HD_Scan } HD_state;
 
@@ -698,15 +858,13 @@ void HD_Tick( )
 	switch( HD_state )
 	{
 		case HD_Start:
-			HD_state = HD_Scan;
-			break;
+		HD_state = HD_Scan;
+		break;
 		
 		case HD_Scan:
-			if ( ( zigZagR == rowPos && zigZagC == colPos ) || ( LZR == rowPos) || ( BLR == rowPos && BLC == colPos ) )
-			{
-				PORTB = 0x01;
-				hitDetected = 1;
-			}
+		if ( /*( zigZagR == rowPos && zigZagC == colPos ) || ( LZR == rowPos) ||*/ ( BLR & rowPos && BLC & colPos ) )
+			hitDetected = 1;
+		
 		break;
 	}
 }
@@ -726,28 +884,32 @@ void RS_Tick( )
 			break;
 		
 		case RS_Wait:
+		
 			if ( tmpRestart == 0x04 )
 			{
-				
 				RS_state = RS_Release;
 				break;
 			}
-		
+			
 			break;
 		
 		case RS_Release:
-			
 			if ( tmpRestart == 0x04 )
 			{
+				PORTB = 0x03;
 				RS_state = RS_state;
 				break;
 			}
 		
 			else if ( tmpRestart == 0x00 )
 			{
-				PORTB = 0x00;
 				// resetButton = 1;
 				hitDetected = 0;
+				
+				PORTB = 0x00;
+				
+				
+				currentPosition = 3;//reset the current players position here because I, thought it would make a difference but no
 				
 				transmit_red( ~0x00 );
 				transmit_yellow( 0x00 );
@@ -755,8 +917,6 @@ void RS_Tick( )
 				RS_state = RS_Wait;
 				break;
 			}
-			
-			break;
 	}
 }
 
@@ -773,10 +933,10 @@ int main(void)
 	unsigned long state_elapsedTime = 100;
 	unsigned long zz_elapsedTime = 100;
 	unsigned long md_elapsedTime = 1;
-	unsigned long hd_elapsedTime = 1;
+	unsigned long hd_elapsedTime = 25;
 	unsigned long lz_elapsedTime = 1;
 	unsigned long bl_elapsedTime = 100;
-	unsigned long rs_elapsedTime = 1;
+	unsigned long rs_elapsedTime = 100;
 	
 	unsigned long state_maxTime = state_elapsedTime;
 	unsigned long zz_maxTime = zz_elapsedTime;
@@ -809,15 +969,12 @@ int main(void)
 	{
 		
 		tmpB = ~PINA & 0x03;
+		tmpRestart = ~PINA & 0x04;
 		
 		xADC = readadc( 0 );	// gets X
 		yADC = readadc( 1 );	// gets Y
-		
-		if ( hd_elapsedTime >= hd_maxTime )
-		{
-			HD_Tick();
-			hd_elapsedTime = 0;
-		}
+				
+
 		
 		if ( md_elapsedTime >= 1 )
 		{
@@ -825,13 +982,18 @@ int main(void)
 			md_elapsedTime = 0;
 		}
 		
-
 		if ( state_elapsedTime >= state_maxTime )
 		{
 			tick( xADC, yADC );
 			state_elapsedTime = 0;
 		}
 		
+		if ( hd_elapsedTime >= hd_maxTime )
+		{
+			HD_Tick();
+			hd_elapsedTime = 0;
+		}
+				
 		if ( zz_elapsedTime >= zz_maxTime )
 		{
 			ZZ_Tick();
@@ -850,16 +1012,17 @@ int main(void)
 			bl_elapsedTime = 0;
 		}
 		
-		if ( hitDetected == 1 )
-		{			
-			if ( rs_elapsedTime >= rs_elapsedTime )
-			{
-				tmpRestart = ~PINA & 0x04;
+
 				
+		if ( hitDetected == 1 )
+		{
+			if ( rs_elapsedTime >= rs_maxTime )
+			{
 				RS_Tick( );
 				rs_elapsedTime = 0;
 			}
 		}
+	
 		
 		
 		while (!TimerFlag);
