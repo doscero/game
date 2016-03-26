@@ -103,6 +103,8 @@ void TimerSet(unsigned long M) {
 
 }
 
+/////////////////////////////////////////////////////////////////////////////////
+
 void transmit_green(unsigned short data) {
 	for (int i = 10; i >= 0; i--) {
 		PORTC = 0x08;
@@ -131,7 +133,7 @@ void transmit_red(unsigned short data) {
 		PORTD |= 0x40;
 	}
 	
-	//set RCLK = 1. Rising edge copies data from the “Shift” register to the
+	//set RCLK = 1. Rising edge copies data from the ï¿½Shiftï¿½ register to the
 	PORTD |= 0x20;
 	PORTD = 0x00;
 }
@@ -143,17 +145,10 @@ void transmit_blue(unsigned short data) {
 		PORTC |= 0x40;
 	}
 	
-	//set RCLK = 1. Rising edge copies data from the “Shift” register to the
+	//set RCLK = 1. Rising edge copies data from the ï¿½Shiftï¿½ register to the
 	PORTC |= 0x20;
 	PORTC = 0x00;
 }
-
-unsigned short tmpB;
-unsigned char tmpValue;
-unsigned short my_short;
-unsigned char my_char1;
-unsigned char my_char2;
-
 
 // initialize adc
 void ADC_init()
@@ -166,12 +161,9 @@ void ADC_init()
 	ADCSRA = (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);
 }
 
-
-
 unsigned short xADC;
 unsigned short yADC;
 
-enum IN_States { Start_IN, Wait_IN } IN_State;
 
 uint16_t readadc(uint8_t ch)
 {
@@ -183,15 +175,6 @@ uint16_t readadc(uint8_t ch)
 
 	return(ADC);        //RETURN ADC VALUE
 }
-
-unsigned char movement;
-
-unsigned short column = 0x04;
-unsigned short row = 0x04;
-
-enum States {start, pos } state;
-
-
 
 int GetChangeValue( unsigned char loc )
 {
@@ -233,6 +216,11 @@ int getCol( unsigned char curValue )
 	
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//  Global Variables
+///////////////////////////////////////////////////////////////////////////////
+
+
 unsigned char map[64] = { 1, 2, 3, 4, 5, 6, 7, 8,
 						9, 10, 11, 12, 13, 14, 15, 16,
 						17, 18, 19, 20, 21, 22, 23, 24,
@@ -243,6 +231,8 @@ unsigned char map[64] = { 1, 2, 3, 4, 5, 6, 7, 8,
 						57, 58, 59, 60, 61, 62, 63, 64 };
 
 
+enum States {start, pos } state;
+
 unsigned char currentPosition;
 unsigned char getModulus;
 unsigned char tmpPos;
@@ -250,6 +240,9 @@ unsigned char rowPos;
 unsigned char colPos;
 
 unsigned char hitDetected = 0;
+unsigned char resetButton;
+
+///////////////////////////////////////////////////////////////////////////////////////////
 
 void tick( short xADC, short yADC )
 {
@@ -380,16 +373,12 @@ void tick( short xADC, short yADC )
 			tmpPos = map[ currentPosition ];
 			colPos = getCol( tmpPos );
 			
-			
-			//transmit_green( ~rowPos );
-			//transmit_yellow( colPos );
-			
 			break;
 		}
 	}
 }
 
-enum ZZ_States{ ZZ_Start, ZZ_Go, ZZ_Freeze } ZZ_state;
+enum ZZ_States{ ZZ_Start, ZZ_Go, ZZ_Freeze, ZZ_Stop } ZZ_state;
 
 unsigned char currentZZ;
 unsigned char zzModulus;
@@ -404,62 +393,66 @@ void ZZ_Tick( )
 	switch( ZZ_state )
 	{
 		case ZZ_Start:
-		ZZ_state = ZZ_Go;
+            ZZ_state = ZZ_Go;
+            
+            currentZZ = 5;
+            zigZagC = 0x01;
+            
+            moveToggle = 0;
+            contFlag = 1;
 		
-		currentZZ = 5;
-		zigZagC = 0x01;
-		
-		moveToggle = 0;
-		contFlag = 1;
-		
-		break;
+		    break;
 		
 		case ZZ_Go:
-		tmpZZ = map[ currentZZ ] % 8;
-		zigZagR = getRow(  tmpZZ );
+        
+            if ( hitDetected == 1 )
+            {
+                ZZ_state = ZZ_Stop;
+                break;
+            }
+            
+        
+            tmpZZ = map[ currentZZ ] % 8;
+            zigZagR = getRow(  tmpZZ );
+            
+            // 			transmit_blue( ~zigZagR );
+            // 			transmit_yellow( zigZagC );
 		
-		// 			transmit_blue( ~zigZagR );
-		// 			transmit_yellow( zigZagC );
+		    contFlag = 0;
 		
-		contFlag = 0;
-		
-		if ( map[ currentZZ ] == 63 || map[ currentZZ ] == 61 )
-		{
-			currentZZ = 5;
-			zigZagC = 0x01;
-			contFlag = 1;
-		}
-		
-		if ( contFlag == 0 )
-		{
-			if ( moveToggle == 0x00 )
-			{
-				currentZZ = currentZZ + 7;
-				zigZagC = zigZagC << 1;
-				moveToggle = ~moveToggle;
-			}
-			
-			else
-			{
-				currentZZ = currentZZ + 9;
-				zigZagC = zigZagC << 1;
-				moveToggle = ~moveToggle;
-				
-			}
-		}
-		
-		if ( hitDetected == 1 )
-		{
-			ZZ_state = ZZ_Freeze;
-			break;
-		}
-		
-		// 			transmit_blue( ~zigZagR );
-		// 			transmit_yellow( zigZagC );
-		break;
+            if ( map[ currentZZ ] == 63 || map[ currentZZ ] == 61 )
+            {
+                currentZZ = 5;
+                zigZagC = 0x01;
+                contFlag = 1;
+            }
+            
+            if ( contFlag == 0 )
+            {
+                if ( moveToggle == 0x00 )
+                {
+                    currentZZ = currentZZ + 7;
+                    zigZagC = zigZagC << 1;
+                    moveToggle = ~moveToggle;
+                }
+                
+                else
+                {
+                    currentZZ = currentZZ + 9;
+                    zigZagC = zigZagC << 1;
+                    moveToggle = ~moveToggle;
+                    
+                }
+            }
+            
+
+            break;
 		
 		case ZZ_Freeze:
-		break;
+		    break;
+            
+        case ZZ_Stop:
+            break
 		
 		
 	}
@@ -478,15 +471,15 @@ void LZ_Tick( )
 	switch( LZ_state )
 	{
 		case LZ_Start:
-		LZ_state = LZ_Beam;
+		    LZ_state = LZ_Beam;
 		
-		LZR = 0x01;
-		LZC = 0xFF;
+            LZR = 0x01;
+            LZC = 0xFF;
 		
-		break;
+		    break;
 		
 		case LZ_Beam:
-		break;
+		    break;
 		
 	}
 }
@@ -505,16 +498,16 @@ void BL_Tick( )
 	switch( BL_state )
 	{
 		case BL_Start:
-		BL_state = BL_Shoot;
+            BL_state = BL_Shoot;
+            
+            BLR = 0x02;
+            BLC = 0x01;
+            
+            tmpBL = 0;
+            
+            littleDelay = 0;
 		
-		BLR = 0x02;
-		BLC = 0x01;
-		
-		tmpBL = 0;
-		
-		littleDelay = 0;
-		
-		break;
+		    break;
 		
 		case BL_Shoot:
 			if ( littleDelay >= 10 )
@@ -543,14 +536,18 @@ void MD_Tick( )
 	switch( MD_state )
 	{
 		case MD_Start:
-		MD_state = MD_MatrixDisplay;
-		hitDetected = 0;
+            MD_state = MD_MatrixDisplay;
+            hitDetected = 0;
 		break;
 		
 		case MD_MatrixDisplay:
 		if ( hitDetected == 1 )
 		{
 			PORTB = 0x01;
+            
+            //  Display an X when hit is detected
+            
+            
 			transmit_red( ~0xFF );
 			transmit_yellow( 0xFF );
 			MD_state = MD_Pause;
@@ -598,6 +595,26 @@ void MD_Tick( )
 	}
 }
 
+enum BS_States{ BS_Start, BS_Move } BS_state;
+
+unsigned char boss_top_left;
+unsigned char boss_top_right;
+unsigned char boss_bottom_left;
+unsigned char boss_bottom_right;
+
+void BS_Tick( )
+{
+    switch( BS_state )
+    {
+        case BS_state:
+        
+            break:
+            
+        case BS_Move:
+            break;
+    }
+}
+
 enum HD_States{ HD_Start, HD_Scan } HD_state;
 
 void HD_Tick( )
@@ -605,8 +622,8 @@ void HD_Tick( )
 	switch( HD_state )
 	{
 		case HD_Start:
-		HD_state = HD_Scan;
-		break;
+            HD_state = HD_Scan;
+            break;
 		
 		case HD_Scan:
 		if ( ( zigZagR == rowPos && zigZagC == colPos ) || ( LZR == rowPos) || ( BLR == rowPos && BLC == colPos ) )
@@ -614,6 +631,49 @@ void HD_Tick( )
 		
 		break;
 	}
+}
+
+//  Restart
+
+enum RS_States{ RS_Start, RS_Wait, RS_Release } RS_state:
+
+unsigned char tmpRestart;
+
+void RS_Tick( )
+{
+    switch( RS_state )
+    {
+        case RS_Start:
+            RS_state = RS_Wait;
+            break;
+            
+        case RS_Wait:
+            tmpRestart = ~PINA & 0x08;
+            
+            if ( tmpRestart == 0x01 )
+            {
+                RS_state = RS_Release;
+                break  
+            }
+            
+            break;
+            
+        case RS_Release:
+            if ( tmpRestart == 0x01 )
+            {
+                RS_state = RS_state;
+                break;
+            }
+            
+            else if ( tmpRestart == 0x00 )
+            {
+                // resetButton = 1;
+                hitDetected = 0;
+                
+                RS_state = RS_Wait;
+                break;
+            }
+    }
 }
 
 
@@ -632,12 +692,14 @@ int main(void)
 	unsigned long hd_elapsedTime = 1;
 	unsigned long lz_elapsedTime = 1;
 	unsigned long bl_elapsedTime = 100;
+    unsigned long rs_elapsedTime = 1;
 	
 	unsigned long state_maxTime = state_elapsedTime;
 	unsigned long zz_maxTime = zz_elapsedTime;
 	unsigned long hd_maxTime = hd_elapsedTime;
 	unsigned long lz_maxTime = lz_elapsedTime;
 	unsigned long bl_maxTime = bl_elapsedTime;
+    unsigned long rs_maxTime = rs_elapsedTime;
 	
 	TimerSet( period );
 	TimerOn();
@@ -645,18 +707,15 @@ int main(void)
 	ADC_init( );
 	//LCD_init( );
 	
-	state = start;
-	ZZ_state = ZZ_Start;
-	MD_state = MD_Start;
-	HD_state = HD_Start;
-	LZ_state = LZ_Start;
-	BL_state = BL_Start;
-	
-
-	// 	unsigned char zigZagR= 0x04;
-	// 	unsigned char zigZagC = 0x01;
-	// 	unsigned char moveToggle = 0;
-	//
+	state = start;          //  Player Movement
+	ZZ_state = ZZ_Start;    //  Zigzag
+	MD_state = MD_Start;    //  Matrix Display
+	HD_state = HD_Start;    //  Hit Detection
+	LZ_state = LZ_Start;    //  Laser
+	BL_state = BL_Start;    //  Bullets
+    RS_state = RS_Start;    //  Restart
+    
+    
 	transmit_red ( ~0x00 );
 	transmit_green( ~0x00 );
 	transmit_blue( ~0x00 );
@@ -670,8 +729,6 @@ int main(void)
 		xADC = readadc( 0 );	// gets X
 		yADC = readadc( 1 );	// gets Y
 		
-		// 		transmit_blue( ~0x00 );
-		// 		transmit_yellow( 0x00 );
 		if ( hd_elapsedTime >= hd_maxTime )
 		{
 			HD_Tick();
@@ -708,6 +765,15 @@ int main(void)
 			BL_Tick();
 			bl_elapsedTime = 0;
 		}
+        
+        if ( hitDetected == 1 )
+        {
+            if ( rs_elapsedTime >= rs_elapsedTime )
+            {
+                RS_Tick( );
+                rs_elapsedTime = 0;
+            }
+        }
 		
 		
 		while (!TimerFlag);
@@ -720,17 +786,7 @@ int main(void)
 		hd_elapsedTime += period;
 		lz_elapsedTime += period;
 		bl_elapsedTime += period;
-		
-		//LaserTick();
-		
-
-		
-
-		// 		while (!TimerFlag);
-		// 		TimerFlag = 0;
-
-
-		
+        rs_elapsedTime += period;		
 
 	}
 }
